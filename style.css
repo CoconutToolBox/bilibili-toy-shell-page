@@ -1,0 +1,151 @@
+/* ════════════════════════════════════════════════════════════
+   椰果工具箱 Toy 壳页样式
+   由 index.html 的 <style> 拆分而来
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 变量与基础 ─────────────────────────────────────────── */
+:root {
+    color-scheme: dark;
+    --bg: #000000;
+    --accent: #fb7299;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+}
+
+/* ── 桌面视口容器 ──────────────────────────────────────── */
+/* iframe 按 1280px 宽渲染桌面布局，缩放适配当前屏幕（JS 计算 scale） */
+.frame-wrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    transform-origin: top left;
+}
+
+iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+
+/* ── 加载层 ────────────────────────────────────────────── */
+.loader {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 13px;
+    color: rgba(232, 228, 240, 0.6);
+    background: var(--bg);
+    z-index: 5;
+}
+
+.loader[hidden] {
+    display: none;
+}
+
+.loader-spinner {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-top-color: var(--accent);
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── 横屏引导层 ────────────────────────────────────────── */
+/* 竖屏触摸设备提示旋转；App 内可点「切换横屏」强制，旋转后自动隐藏 */
+#rotate-hint {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 32px;
+    text-align: center;
+    background: #000000;
+    color: #e8e4f0;
+    transition: opacity 0.3s ease;
+}
+
+#rotate-hint[hidden] {
+    display: none;
+}
+
+.rotate-icon {
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fb7299;
+    animation: rotate-bounce 1.6s ease-in-out infinite;
+}
+
+.rotate-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.rotate-sub {
+    font-size: 13px;
+    color: rgba(232, 228, 240, 0.6);
+    max-width: 280px;
+}
+
+/* 横屏切换按钮：空心粉框粉字，hover 反色 */
+.rotate-btn {
+    margin-top: 6px;
+    padding: 10px 22px;
+    border: 1.5px solid #fb7299;
+    border-radius: 10px;
+    background: transparent;
+    color: #fb7299;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.rotate-btn:hover {
+    background: #fb7299;
+    color: #ffffff;
+}
+
+.rotate-btn:active {
+    transform: scale(0.97);
+}
+
+@keyframes rotate-bounce {
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(90deg);
+    }
+}
