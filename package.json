@@ -1,0 +1,15 @@
+{
+    "name": "bilibili-toy-shell-page",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "build": "node build.mjs"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.0",
+        "clean-css": "^5.3.3",
+        "fflate": "^0.8.2",
+        "html-minifier-terser": "^7.2.0",
+        "terser": "^5.51.2"
+    }
+}

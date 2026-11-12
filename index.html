@@ -30,11 +30,8 @@
         <button type="button" class="rotate-btn" id="rotate-btn">切换横屏</button>
     </div>
 
-    <!-- 桌面视口容器：承载主站 iframe -->
-    <div id="frame-wrap" class="frame-wrap">
-        <iframe id="frame" title="椰果工具箱" src="https://wuwa-hpyg-tool.200503.xyz/"
-            allow="fullscreen; autoplay; clipboard-write"></iframe>
-    </div>
+    <!-- 桌面视口容器：#frame 由 script.js 在页面加载完成后动态挂载（绕过静态 iframe 拦截） -->
+    <div id="frame-wrap" class="frame-wrap"></div>
 
     <!-- 壳页脚本：视口适配、横屏控制、身份透传等 -->
     <script src="script.js"></script>

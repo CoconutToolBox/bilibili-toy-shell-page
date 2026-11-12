@@ -2,8 +2,7 @@
 
 /**
  * @file 椰果工具箱 Toy 壳页脚本
- * @description 由 index.html 的内联脚本拆分而来：负责主站 iframe 承载、
- * 桌面视口缩放、横屏强制控制与用户身份透传。
+ * @description 负责主站 iframe 的动态挂载、桌面视口缩放、横屏强制控制与用户身份透传。
  *
  * 依赖：head 中的 toy-sdk.js 加载后挂载全局 `window.toy`；
  * 类型声明见 ./toy.d.ts（本文件顶部已引用，IDE 可直接补全 `toy` / `window.toy`）。
@@ -11,15 +10,13 @@
 
 /* ── DOM 引用 ─────────────────────────────────────────────── */
 
-/** 主站 iframe（承载工具站页面） */
-const frame = /** @type {HTMLIFrameElement} */ (
-    document.getElementById('frame')
-)
+/** 主站 iframe，页面加载完成后由 mountFrame 动态创建（静态外部 iframe 会被 B站客户端拦截） */
+let frame = /** @type {HTMLIFrameElement | null} */ (null)
 
 /** 加载指示层 */
 const loader = /** @type {HTMLElement} */ (document.getElementById('loader'))
 
-/** 桌面视口容器（按设计宽度等比缩放） */
+/** 桌面视口容器（按设计宽度等比缩放，iframe 动态挂载在其内部） */
 const wrap = /** @type {HTMLElement} */ (document.getElementById('frame-wrap'))
 
 /* ── 桌面视口适配 ─────────────────────────────────────────── */
@@ -122,12 +119,13 @@ function waitForSdk(timeoutMs) {
 }
 
 /**
- * 向 iframe 内的主站发送用户身份。
+ * 向 iframe 内的主站发送用户身份；iframe 未挂载时忽略。
  * @param {ToySDK.UserProfileResp} profile 用户资料（头像、昵称、Toy 内标识）
  */
 function sendProfile(profile) {
-    if (!frame.contentWindow || !profile) return
-    frame.contentWindow.postMessage({ type: 'toy-profile', profile }, '*')
+    const win = frame?.contentWindow
+    if (!win || !profile) return
+    win.postMessage({ type: 'toy-profile', profile }, '*')
     profileSent = true
     lastProfile = profile
 }
@@ -189,6 +187,7 @@ async function initContainerMode() {
             immersive: true,
         })
     } catch {
+        alert("不支持setContainerMode")
         /** 静默：旧客户端不支持等，保持提示层引导 */
     }
     setContainerSettled()
@@ -198,49 +197,68 @@ initContainerMode()
 
 /* ── hash 透传 ─────────────────────────────────────────────── */
 /* 壳页自身 URL 的 hash（#import_project= / #websocket= / #reset-cache 等）
-   同步到 iframe src，主站加载后由其 hash 动作系统自动分发。 */
-
-/**
- * 取 iframe 当前 src 去掉 hash 后的基础地址。
- * @returns {string} 基础地址
- */
-function frameBase() {
-    const src = frame.getAttribute('src') || ''
-    return src.split('#')[0]
-}
+   同步到 iframe src，主站加载后由其 hash 动作系统自动分发；
+   iframe 未挂载时忽略（挂载时会带上当前 hash）。 */
 
 /**
  * 将壳页 URL 的 hash 同步到 iframe src。
  */
 function syncFrameHash() {
-    const target = frameBase() + (location.hash || '')
-    if (frame.src !== target) frame.src = target
+    const f = frame
+    if (!f) return
+    const base = (f.getAttribute('src') || '').split('#')[0]
+    const target = base + (location.hash || '')
+    if (f.src !== target) f.src = target
 }
 
 window.addEventListener('hashchange', syncFrameHash)
 syncFrameHash()
 
-/* ── iframe 加载 ───────────────────────────────────────────── */
-/* 隐藏 loader；无条件重发 toy-environment（告知主站在 Toy 壳内，与认证结果无关），
-   若身份已获取过则同时重发 toy-profile（hash 透传会触发导航）。 */
+/* ── 主站 iframe 动态挂载 ─────────────────────────────────── */
+/* B站客户端会拦截静态 HTML 里指向外部地址的 iframe；页面加载完成后再由 JS
+   动态插入到 body（本页插入 #frame-wrap 容器内）则不会被拦截。
+   挂载后隐藏 loader，并在主站加载后重发 toy-environment / toy-profile。 */
+
+/** 主站地址 */
+const FRAME_URL = 'https://wuwa-hpyg-tool.200503.xyz/'
+
+/**
+ * 创建 iframe 并挂载到 #frame-wrap（位于 body 内）。
+ * 在页面 load 之后执行，规避 B站客户端对静态外部 iframe 的拦截。
+ */
+function mountFrame() {
+    if (frame) return
+    const el = document.createElement('iframe')
+    el.id = 'frame'
+    el.title = '椰果工具箱'
+    el.setAttribute('allow', 'fullscreen; autoplay; clipboard-write')
+    el.addEventListener('load', () => {
+        loader.hidden = true
+        scheduleResend()
+    })
+    el.src = FRAME_URL + (location.hash || '')
+    wrap.appendChild(el)
+    frame = el
+    syncFrameHash()
+    resendEnvironment()
+}
 
 /**
  * 向主站重发「处于 Toy 壳内」的环境通知。
  */
 function resendEnvironment() {
-    if (!frame.contentWindow) return
-    frame.contentWindow.postMessage({ type: 'toy-environment' }, '*')
+    const win = frame?.contentWindow
+    if (!win) return
+    win.postMessage({ type: 'toy-environment' }, '*')
 }
 
 /**
  * 向主站重发用户身份（仅当已获取过）。
  */
 function resendProfile() {
-    if (!profileSent || !frame.contentWindow || !lastProfile) return
-    frame.contentWindow.postMessage(
-        { type: 'toy-profile', profile: lastProfile },
-        '*',
-    )
+    const win = frame?.contentWindow
+    if (!profileSent || !win || !lastProfile) return
+    win.postMessage({ type: 'toy-profile', profile: lastProfile }, '*')
 }
 
 /**
@@ -253,11 +271,13 @@ function scheduleResend() {
     }
 }
 
-resendEnvironment()
-frame.addEventListener('load', () => {
-    loader.hidden = true
-    scheduleResend()
-})
+if (document.readyState === 'complete') {
+    /** 已加载完成（脚本晚于 load 执行）→ 立即挂载 */
+    mountFrame()
+} else {
+    /** 页面加载完成后再动态插入 iframe */
+    window.addEventListener('load', mountFrame, { once: true })
+}
 
 /* ── 「切换横屏」按钮 ──────────────────────────────────────── */
 /* 提示层里的按钮：App 内调 setContainerMode 强制横屏沉浸式；
